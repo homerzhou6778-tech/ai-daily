@@ -18,6 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      generated_at: ${{ steps.snapshot.outputs.generated_at }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,7 +30,7 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Verify public publishing boundaries
         run: |
-          python -m pytest -q tests/test_public_profile.py tests/test_ai_relevance.py tests/test_story_merge.py tests/test_published_at_guard.py
+          python -m pytest -q tests/test_public_profile.py tests/test_ai_relevance.py tests/test_story_merge.py tests/test_published_at_guard.py tests/test_health.py
           node --check assets/app.js
           node --check assets/public-health.js
       - name: Restore public history
@@ -39,6 +41,9 @@ jobs:
           restore-keys: public-history-v2-
       - name: Collect the 12 public sources
         run: python scripts/update_news.py --public-only --output-dir data --window-hours 24 --archive-days 21
+      - name: Record the expected published snapshot
+        id: snapshot
+        run: python -c "import json; print('generated_at=' + json.load(open('data/latest-24h.json'))['generated_at'])" >> "$GITHUB_OUTPUT"
       - name: Generate public RSS and stage allowed files
         run: |
           python scripts/generate_feed.py --data-dir data
@@ -64,3 +69,16 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+  verify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check the live site and this run's snapshot
+        env:
+          EXPECTED_GENERATED_AT: ${{ needs.build.outputs.generated_at }}
+        run: python scripts/check_health.py --minimum-generated-at "$EXPECTED_GENERATED_AT" --attempts 6 --retry-seconds 15

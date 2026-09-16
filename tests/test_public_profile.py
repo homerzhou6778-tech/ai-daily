@@ -123,7 +123,7 @@ def test_deployment_allowlist_excludes_private_files(tmp_path):
     (root / "data/email-digest.json").write_text("synthetic private fixture", "utf-8")
     (root / "data/archive.json").write_text("not a published file", "utf-8")
     (root / ".env").write_text("synthetic fixture", "utf-8")
-    for name in ("index.html", "site.webmanifest"):
+    for name in ("index.html", "about.html", "site.webmanifest"):
         (root / name).write_text("", "utf-8")
     for name in ("assets", "classic"):
         (root / name).mkdir()

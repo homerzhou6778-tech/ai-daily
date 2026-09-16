@@ -16,6 +16,11 @@ archive history is cached. Mail digests, raw archives, source code and runtime
 configuration are absent from the deployed artifact. A browser freshness notice
 appears after four hours without a new snapshot.
 
+Every deployment is followed by a live health probe. It checks the homepage,
+RSS and consistent JSON snapshots, requiring a generated time at least as new
+as the current build. Source degradation is distinct from an unusable site.
+See `OPERATIONS.md` for independent monitoring and bounded recovery.
+
 No user API credentials are required. GitHub's built-in deployment identity is
 ephemeral; no PAT or login token is added to this repository.
 

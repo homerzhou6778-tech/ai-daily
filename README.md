@@ -3,6 +3,7 @@
 一个无需自建服务器的 AI 资讯网站。GitHub Actions 每小时第 17 分钟尝试更新，GitHub Pages 发布静态页面；定时任务可能排队，页面会显示实际更新时间。
 
 - 网站：https://homerzhou6778-tech.github.io/ai-daily/
+- [使用与信源说明](https://homerzhou6778-tech.github.io/ai-daily/about.html) · [运行与维护](docs/OPERATIONS.md)
 - 工作流：仓库 Actions → **Update and publish AI daily** → Run workflow
 - 手机与桌面视图、搜索、来源筛选、24 小时列表、规则精选及 RSS 订阅。
 - 无需自备 API Key；保留原始标题，不生成模型点评或虚构摘要。
@@ -33,7 +34,7 @@ python -m http.server 8080 --directory _site
 `_site` 必须是一个尚不存在的目录，以免覆盖错误路径；重复构建可通过 `--output` 指定新目录。
 
 ```sh
-python -m pytest -q tests/test_public_profile.py tests/test_ai_relevance.py tests/test_story_merge.py tests/test_published_at_guard.py
+python -m pytest -q tests/test_public_profile.py tests/test_ai_relevance.py tests/test_story_merge.py tests/test_published_at_guard.py tests/test_health.py
 node --check assets/app.js
 node --check assets/public-health.js
 ```
@@ -43,6 +44,8 @@ node --check assets/public-health.js
 GitHub 仓库 Settings → Pages → Source 选择 **GitHub Actions**。首次推送 main 或手动运行工作流即可部署；之后每小时自动采集。工作流使用 GitHub 自动提供的短期身份发布，无需另存 PAT。
 
 公开仓库的定时任务长时间无仓库活动可能被 GitHub 停用，需要在 Actions 重新启用；这属于 GitHub 托管服务的限制。失败运行会保留上次成功的部署，不能把旧页面仍能打开理解为采集正常。
+
+每次发布后，工作流还会读取真正的线上页面、RSS 和数据，确认本次新快照已可见。维护者另设每天两次的 Codex 巡检，只报告异常或恢复；该本地任务不随仓库复制。详见[运行与维护](docs/OPERATIONS.md)。
 
 ## 发布边界
 

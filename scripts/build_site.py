@@ -32,7 +32,7 @@ def stage_site(root: Path, destination: Path) -> None:
         if not (root / "data" / filename).is_file():
             raise ValueError(f"Missing public output: {filename}")
     destination.mkdir(parents=True)
-    for name in ("index.html", "site.webmanifest"):
+    for name in ("index.html", "about.html", "site.webmanifest"):
         shutil.copy2(root / name, destination / name)
     for name in ("assets", "classic"):
         shutil.copytree(root / name, destination / name)

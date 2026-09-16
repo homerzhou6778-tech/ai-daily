@@ -7,6 +7,9 @@ This derivative deploys only `scripts/update_news.py --public-only` via
 `docs/PUBLIC_PROFILE.md` before the upstream historical docs below. Keep the
 12-source scope, no-credential pipeline and explicit Pages artifact allowlist.
 Never enable private/paid adapters or commit generated data for this public site.
+Read `docs/OPERATIONS.md` for health checks and bounded recovery. Keep only one
+news collection schedule; the independent Codex monitor should remain quiet
+while state is healthy or unchanged. Never restart an intentionally paused workflow.
 
 This repo powers the public AI News Radar static site and Scout Skill source workflow.
 Use it for high-signal AI/tech news aggregation, OPML-based custom feeds,
@@ -43,8 +46,9 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 python -m py_compile scripts/update_news.py
 python -m pytest -q
-python scripts/update_news.py --output-dir data --window-hours 24 --rss-opml feeds/follow.opml
-python -m http.server 8080
+python scripts/update_news.py --public-only --output-dir data --window-hours 24
+python scripts/check_health.py --attempts 2
+python -m http.server 8080 --directory _site
 ```
 
 For agent workflows, read `skills/ai-news-radar/SKILL.md`.
