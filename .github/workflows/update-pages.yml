@@ -1,0 +1,66 @@
+name: Update and publish AI daily
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-daily-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install fixed dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Verify public publishing boundaries
+        run: |
+          python -m pytest -q tests/test_public_profile.py tests/test_ai_relevance.py tests/test_story_merge.py tests/test_published_at_guard.py
+          node --check assets/app.js
+          node --check assets/public-health.js
+      - name: Restore public history
+        uses: actions/cache/restore@v4
+        with:
+          path: data/archive.json
+          key: public-history-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: public-history-v1-
+      - name: Collect the 12 public sources
+        run: python scripts/update_news.py --public-only --output-dir data --window-hours 24 --archive-days 21
+      - name: Generate public RSS and stage allowed files
+        run: |
+          python scripts/generate_feed.py --data-dir data
+          python scripts/build_site.py --output _site
+      - name: Save public history
+        uses: actions/cache/save@v4
+        with:
+          path: data/archive.json
+          key: public-history-v1-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
