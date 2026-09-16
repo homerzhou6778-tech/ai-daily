@@ -35,8 +35,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data/archive.json
-          key: public-history-v1-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: public-history-v1-
+          key: public-history-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: public-history-v2-
       - name: Collect the 12 public sources
         run: python scripts/update_news.py --public-only --output-dir data --window-hours 24 --archive-days 21
       - name: Generate public RSS and stage allowed files
@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: data/archive.json
-          key: public-history-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: public-history-v2-${{ github.run_id }}-${{ github.run_attempt }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

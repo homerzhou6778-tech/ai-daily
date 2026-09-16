@@ -2015,7 +2015,7 @@ def fetch_ai_breakfast(session: requests.Session, now: datetime) -> list[RawItem
     return out
 
 
-def parse_follow_builders_items(feeds: dict[str, dict[str, Any]], now: datetime) -> list[RawItem]:
+def parse_follow_builders_items(feeds: dict[str, dict[str, Any]], now: datetime, *, strict_dates: bool = False) -> list[RawItem]:
     site_id = "followbuilders"
     site_name = "Follow Builders"
     out: list[RawItem] = []
@@ -2048,9 +2048,9 @@ def parse_follow_builders_items(feeds: dict[str, dict[str, Any]], now: datetime)
     for article in feeds.get("blogs", {}).get("blogs", []) or []:
         title = str(article.get("title") or "").strip()
         url = str(article.get("url") or "").strip()
-        published = parse_date_any(article.get("publishedAt"), now) or parse_date_any(
-            feeds.get("blogs", {}).get("generatedAt"), now
-        )
+        published = parse_date_any(article.get("publishedAt"), now)
+        if not published and not strict_dates:
+            published = parse_date_any(feeds.get("blogs", {}).get("generatedAt"), now)
         if not title or not url or not published:
             continue
         out.append(
@@ -2068,9 +2068,9 @@ def parse_follow_builders_items(feeds: dict[str, dict[str, Any]], now: datetime)
     for episode in feeds.get("podcasts", {}).get("podcasts", []) or []:
         title = str(episode.get("title") or "").strip()
         url = str(episode.get("url") or "").strip()
-        published = parse_date_any(episode.get("publishedAt"), now) or parse_date_any(
-            feeds.get("podcasts", {}).get("generatedAt"), now
-        )
+        published = parse_date_any(episode.get("publishedAt"), now)
+        if not published and not strict_dates:
+            published = parse_date_any(feeds.get("podcasts", {}).get("generatedAt"), now)
         if not title or not url or not published:
             continue
         out.append(
@@ -2088,7 +2088,7 @@ def parse_follow_builders_items(feeds: dict[str, dict[str, Any]], now: datetime)
     return out
 
 
-def fetch_follow_builders(session: requests.Session, now: datetime) -> list[RawItem]:
+def fetch_follow_builders(session: requests.Session, now: datetime, *, strict_dates: bool = False) -> list[RawItem]:
     feeds: dict[str, dict[str, Any]] = {}
     for key, filename in (
         ("x", "feed-x.json"),
@@ -2106,7 +2106,7 @@ def fetch_follow_builders(session: requests.Session, now: datetime) -> list[RawI
         resp.raise_for_status()
         feeds[key] = resp.json()
 
-    out = parse_follow_builders_items(feeds, now)
+    out = parse_follow_builders_items(feeds, now, strict_dates=strict_dates)
     if not out:
         raise ValueError("No Follow Builders items parsed")
     return out
@@ -2542,6 +2542,11 @@ def fetch_anthropic_public(session: requests.Session, now: datetime) -> list[Raw
     return items
 
 
+def fetch_follow_builders_public(session: requests.Session, now: datetime) -> list[RawItem]:
+    """Require item publication dates rather than feed generation timestamps."""
+    return fetch_follow_builders(session, now, strict_dates=True)
+
+
 def collect_all(session: requests.Session, now: datetime, *, public_only: bool = False) -> tuple[list[RawItem], list[dict[str, Any]]]:
     tasks = [
         ("official_ai", "Official AI Updates", fetch_official_ai_updates),
@@ -2562,7 +2567,7 @@ def collect_all(session: requests.Session, now: datetime, *, public_only: bool =
     if public_only:
         tasks = [
             ("official_ai", "Anthropic News", fetch_anthropic_public),
-            ("followbuilders", "Follow Builders", fetch_follow_builders),
+            ("followbuilders", "Follow Builders", fetch_follow_builders_public),
         ]
 
     raw_items: list[RawItem] = []

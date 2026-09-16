@@ -88,10 +88,19 @@ def test_public_collector_only_calls_selected_adapters(monkeypatch):
         monkeypatch.setattr(radar, name, forbidden)
     called = []
     monkeypatch.setattr(radar, "fetch_anthropic_public", lambda *args: called.append("anthropic") or [])
-    monkeypatch.setattr(radar, "fetch_follow_builders", lambda *args: called.append("builders") or [])
+    monkeypatch.setattr(radar, "fetch_follow_builders", lambda *args, **kwargs: called.append("builders") or [])
     _, statuses = radar.collect_all(None, NOW, public_only=True)
     assert called == ["anthropic", "builders"]
     assert len(statuses) == 2
+
+
+def test_public_builders_does_not_substitute_feed_generation_for_publication():
+    feeds = {"blogs": {"generatedAt": NOW.isoformat(), "blogs": [
+        {"title": "OpenAI old article without a date", "url": "https://example.com/old"},
+        {"title": "Claude dated update", "url": "https://example.com/new", "publishedAt": NOW.isoformat()},
+    ]}}
+    items = radar.parse_follow_builders_items(feeds, NOW, strict_dates=True)
+    assert [item.url for item in items] == ["https://example.com/new"]
 
 
 def test_html_error_page_is_not_a_healthy_feed(monkeypatch, tmp_path):
